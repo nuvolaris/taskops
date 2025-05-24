@@ -1,0 +1,54 @@
+version: 3
+
+vars:
+  IMAGE: redis:latest
+  CONTAINER_NAME: redis-server
+  
+tasks:
+  default: task --list-all
+
+  create:
+    desc: Run the Redis container
+    cmds:
+      - docker run -d --name {{.CONTAINER_NAME}} -p 6379:6379 {{.IMAGE}}
+    silent: true
+
+  stop:
+    desc: Stop the Redis container
+    cmds:
+      - docker stop  {{.CONTAINER_NAME}}
+    silent: true
+
+  remove:
+    desc: Remove the Redis container
+    cmds:
+      - docker rm -f {{.CONTAINER_NAME}}
+    silent: true
+
+  logs:
+    desc: View the logs of the Redis container
+    cmds:
+      - docker logs {{.CONTAINER_NAME}}
+    silent: false
+
+  cli:
+    desc: Open a shell in the Redis container
+    cmds:
+      - docker exec -it {{.CONTAINER_NAME}} redis-cli
+    silent: false
+
+  status:
+    desc: Check the status of the Redis container
+    cmds:
+      - docker ps -a --filter "name={{.CONTAINER_NAME}}"
+    silent: true
+
+  test:
+    desc: Run a test command in the Redis container
+    cmds:
+      - task: create
+      - task: status
+      - task: logs
+      - task: remove
+      - task: status
+    silent: false

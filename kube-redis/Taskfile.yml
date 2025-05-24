@@ -1,0 +1,59 @@
+version: 3
+
+vars:
+  IMAGE: redis:latest
+  CONTAINER_NAME: redis-server
+  
+tasks:
+
+  default: task --list-all
+
+  create:
+    desc: Run the Redis container
+    cmds:
+      - kubectl apply -f redis.yaml
+    silent: true
+
+  status:
+    desc: Check the status of the Redis container
+    cmds:
+      - kubectl get pods -l app=redis
+    silent: true
+
+  wait:
+    desc: Wait for the Redis container to be ready
+    cmds:
+      - kubectl wait --for=condition=Ready pod -l app=redis --timeout=60s
+    silent: true
+
+  remove:
+    desc: Remove the Redis container
+    cmds:
+      - kubectl delete -f redis.yaml
+    silent: true
+
+  logs:
+    desc: View the logs of the Redis container
+    cmds:
+      - kubectl logs -l app=redis
+    silent: false
+
+  cli:
+    vars:
+      POD:
+        sh: |
+          kubectl get pods -l app=redis -o jsonpath='{.items[0].metadata.name}'
+    desc: Open a shell in the Redis container
+    cmds:
+      - kubectl exec -it {{.POD}} -- redis-cli
+    silent: false
+
+  test:
+    desc: Run a test command in the Redis container
+    cmds:
+      - task: create
+      - task: wait
+      - task: status
+      - task: logs
+      - task: remove
+    silent: false
