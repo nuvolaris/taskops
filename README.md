@@ -1,4 +1,4 @@
-# TaskOps starter kit
+# Starter kit for applying a TaskOps job at Nuvolaris
 
 So you want to be a TaskOps?
 
