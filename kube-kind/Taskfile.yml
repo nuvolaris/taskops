@@ -25,11 +25,13 @@ tasks:
 
   status:
     silent: true
+    desc: Check if the cluster is running
     cmds:
     - |
       kind get clusters | grep {{.CLUSTER}}
 
   create:
+    desc: Create a kind cluster
     silent: true
     cmds:
     - > 
@@ -37,12 +39,14 @@ tasks:
       --wait=1m --name {{.CLUSTER}}
 
   remove:
+    desc: Remove the kind cluster
     silent: true
     cmds:
     - kind delete clusters {{.CLUSTER}}
 
 
   test:
+    desc: Test the kind cluster
     silent: false
     cmds:
     - task: create

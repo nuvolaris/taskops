@@ -1,0 +1,15 @@
+version: 3
+
+includes:
+  docker-redis:
+    taskfile: ./docker-redis/Taskfile.yml
+    dir: ./docker-redis
+  kube-kind:
+    taskfile: ./kube-kind/Taskfile.yml
+    dir: ./kube-kind
+  kube-redis:
+    taskfile: ./kube-redis/Taskfile.yml
+    dir: ./kube-redis
+
+tasks:
+  default: task --list-all
