@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwhisk-service
+
+spec:
+  selector:
+    app: openwhisk
+  ports:
+    - protocol: TCP
+      port: 3232
+      targetPort: 3232
+      nodePort: 32332
+      name: http
+    - protocol: TCP
+      port: 3233
+      targetPort: 3233
+      nodePort: 32333
+      name: https
+  type: NodePort

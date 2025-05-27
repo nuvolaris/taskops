@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/master/deployment-apps-v1.json
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwhisk
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: openwhisk
+
+  template:
+    metadata:
+      labels:
+        app: openwhisk
+
+    spec:
+      containers:
+        - name: openwhisk
+          image: apache/openserverless-wsk-standalone:2.0.0-incubating.2505221846
+          ports:
+            - containerPort: 3232
+            - containerPort: 3233
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket

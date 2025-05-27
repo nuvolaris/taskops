@@ -1,0 +1,74 @@
+version: 3
+
+vars:
+  APP_NAME: openwhisk
+  DEPLOYMENT_FILE: openwhisk-deployment.yaml
+  SERVICE_FILE: openwhisk-service.yaml
+  IMAGE: apache/openserverless-wsk-standalone:2.0.0-incubating.2505221846
+
+
+tasks:
+
+  default:
+    silent: true
+    cmd: task -l
+
+  create:
+    desc: Deploy OpenWhisk to K8s
+    silent: true
+    cmd: kubectl apply -f {{.DEPLOYMENT_FILE}} -f {{.SERVICE_FILE}}
+
+  status:
+    desc: Check the status of the OpenWhisk pod
+    silent: true
+    cmd: kubectl get pods -l app={{.APP_NAME}}
+
+  wait:
+    desc: Wait for the OpenWhisk pod to be ready
+    silent: true
+    cmd: kubectl wait --for=condition=Ready pod -l app={{.APP_NAME}} --timeout=60s
+
+  remove:
+    desc: Remove the OpenWhisk deployment and service
+    silent: true
+    cmd: kubectl delete -f {{.DEPLOYMENT_FILE}} -f {{.SERVICE_FILE}}
+
+  logs:
+    desc: View the logs of the OpenWhisk pod
+    silent: true
+    cmd: kubectl logs -l app={{.APP_NAME}} --tail=1000
+
+  cli:
+    desc: Open a shell in the OpenWhisk pod
+    silent: true
+    vars:
+      POD:
+        sh: |
+          kubectl get pods -l app={{.APP_NAME}} -o jsonpath='{.items[0].metadata.name}'
+    cmd: kubectl exec -it {{.POD}} -- /bin/bash
+
+  test:
+    desc: Run a test command to check if Openwhisk is working properly
+    silent: false
+    cmds:
+      - task: create
+      - task: wait
+      - task: status
+      - task: logs
+      - task: remove
+
+  docker-up:
+    desc: Run the OpenWhisk docker container
+    silent: true
+    cmd: >
+      docker run -it
+      --name {{.APP_NAME}}
+      -p 3232:3232
+      -p 3233:3233
+      -v /var/run/docker.sock:/var/run/docker.sock
+      {{.IMAGE}}
+
+  docker-down:
+    desc: Stop the OpenWhisk docker container
+    silent: true
+    cmd: docker rm -f {{.APP_NAME}}
