@@ -4,12 +4,18 @@ includes:
   docker-redis:
     taskfile: ./docker-redis/Taskfile.yml
     dir: ./docker-redis
+  docker-couchdb:
+    taskfile: ./docker-couchdb/Taskfile.yml
+    dir: ./docker-couchdb
   kube-kind:
     taskfile: ./kube-kind/Taskfile.yml
     dir: ./kube-kind
   kube-redis:
     taskfile: ./kube-redis/Taskfile.yml
     dir: ./kube-redis
+  kube-couchdb:
+    taskfile: ./kube-couchdb/Taskfile.yml
+    dir: ./kube-couchdb
 
 tasks:
   default: task --list-all
