@@ -1,0 +1,15 @@
+version: 3
+
+tasks:
+  check-var:
+    desc: "Checks if a required variable is set"
+    cmds:
+      - |
+        VAR_NAME="{{.VAR_NAME}}"
+        VAR_VALUE="{{.VAR_VALUE}}"
+      
+        if [ -z "$VAR_VALUE" ]; then
+          printf "Error: required variable '%s' is not set or empty.\n" "$VAR_NAME" >&2
+          exit 1
+        fi
+    silent: true
