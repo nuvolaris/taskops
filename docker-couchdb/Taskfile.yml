@@ -1,0 +1,94 @@
+version: 3
+
+vars:
+  IMAGE: couchdb:latest
+  CONTAINER_NAME: couchdb-server
+  PORT: "5984"
+  COUCHDB_USER: admin
+  COUCHDB_PASSWORD: admin
+  ENDPOINT: http://{{.COUCHDB_USER}}:{{.COUCHDB_PASSWORD}}@localhost:{{.PORT}}
+
+includes:
+  variables:
+    taskfile: ../variables/Taskfile.yml
+    dir: ../variables
+
+tasks:
+  default: task --list-all
+
+  dbcliprereq:
+    silent: true
+    cmds:
+      - test -x "$(which curl)" || { echo "curl not available"; exit 1; }
+
+  create:
+    desc: Run the Couchdb container
+    cmds:
+      - docker run -d --name {{.CONTAINER_NAME}} -e COUCHDB_USER={{.COUCHDB_USER}} -e COUCHDB_PASSWORD={{.COUCHDB_PASSWORD}} -p {{.PORT}}:{{.PORT}} {{.IMAGE}}
+    silent: true
+
+  stop:
+    desc: Stop the Couchdb container
+    cmds:
+      - docker stop  {{.CONTAINER_NAME}}
+    silent: true
+
+  remove:
+    desc: Remove the Couchdb container
+    cmds:
+      - docker rm -f {{.CONTAINER_NAME}}
+    silent: true
+
+  logs:
+    desc: View the logs of the Couchdb container
+    cmds:
+      - docker logs {{.CONTAINER_NAME}}
+    silent: false
+
+  status:
+    desc: Check the status of the Couchdb container
+    cmds:
+      - docker ps -a --filter "name={{.CONTAINER_NAME}}"
+    silent: true
+  
+  start:
+    desc: Start the Couchdb container
+    cmds:
+      - |
+        if docker ps -a --format '{{`{{.Names}}`}}' | grep -q '^{{.CONTAINER_NAME}}$'; then
+          if [ "$(docker inspect -f '{{`{{.State.Status}}`}}' {{.CONTAINER_NAME}})" = "exited" ]; then
+            docker start {{.CONTAINER_NAME}}
+          else
+            echo "Container is already running or in different state"
+          fi
+        else
+          echo "Container does not exist. Use 'task create' first"
+        fi
+    silent: true
+
+  listdbs:
+    desc: List the Couchdb databases
+    cmds:
+      - task: dbcliprereq
+      - curl '{{.ENDPOINT}}/_all_dbs'
+    silent: true
+  
+  createdb:
+    desc: Create a couchdb database
+    vars:
+      DB_NAME: '{{.DB_NAME | default ""}}'
+    cmds:
+      - task: dbcliprereq
+      - task: variables:check-var
+        vars: { VAR_NAME: "DB_NAME", VAR_VALUE: "{{.DB_NAME}}" }
+      - curl -XPUT '{{.ENDPOINT}}/{{.DB_NAME}}'
+
+  test:
+    desc: Run a test command in the Couchdb container
+    cmds:
+      - task: create
+      - task: status
+      - task: logs
+      - task: remove
+      - task: status
+    silent: false

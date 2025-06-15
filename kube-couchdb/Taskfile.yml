@@ -1,0 +1,98 @@
+version: 3
+
+vars:
+  COUCHDB_USER: admin
+  COUCHDB_PASSWORD: admin
+  COUCHDB_USER_B64:
+    sh: 'echo -n "{{.COUCHDB_USER}}" | base64'
+  COUCHDB_PASSWORD_B64:
+    sh: 'echo -n "{{.COUCHDB_PASSWORD}}" | base64'
+  IMAGE: couchdb:latest
+  POD_NAME: couchdb-server
+  NAMESPACE: default
+  
+tasks:
+
+  default: task --list-all
+
+  render-secret:
+    desc: Generates couchdb secret
+    env:
+      COUCHDB_USER: "{{.COUCHDB_USER_B64}}"
+      COUCHDB_PASSWORD: "{{.COUCHDB_PASSWORD_B64}}"
+      POD_NAME: "{{.POD_NAME}}"
+      NAMESPACE: "{{.NAMESPACE}}"
+    cmds:
+      - envsubst < couchdb-secret.tmpl.yaml > couchdb-secret.yaml
+    internal: true
+
+  render-deployment:
+    desc: Render couchdb deployment manifest
+    env:
+      COUCHDB_USER: "{{.COUCHDB_USER_B64}}"
+      COUCHDB_PASSWORD: "{{.COUCHDB_PASSWORD_B64}}"
+      POD_NAME: "{{.POD_NAME}}"
+      NAMESPACE: "{{.NAMESPACE}}"
+      IMAGE: "{{.IMAGE}}"
+    cmds:
+      - echo "Rendering manifest..."
+      - envsubst < couchdb.tmpl.yaml > couchdb.yaml
+    internal: true
+
+  render-templates:
+    internal: true
+    cmds:
+      - task: render-secret
+      - task: render-deployment
+
+  create:
+    desc: Run the Couchdb pod
+    cmds:
+      - task: render-templates
+      - kubectl --dry-run=server apply -f couchdb-secret.yaml
+      - kubectl --dry-run=server apply -f couchdb.yaml
+    silent: true
+
+  status:
+    desc: Check the status of the Couchdb pod
+    cmds:
+      - kubectl get pods -l app=couchdb
+    silent: true
+
+  wait:
+    desc: Wait for the Couchdb pod to be ready
+    cmds:
+      - kubectl wait --for=condition=Ready pod -l app=couchdb --timeout=60s
+    silent: true
+
+  remove:
+    desc: Remove the Couchdb pod
+    cmds:
+      - kubectl delete -f couchdb.tmpl.yaml
+    silent: true
+
+  logs:
+    desc: View the logs of the Couchdb pod
+    cmds:
+      - kubectl logs -l app=couchdb
+    silent: false
+
+  cli:
+    vars:
+      POD:
+        sh: |
+          kubectl get pods -l app=couchdb -o jsonpath='{.items[0].metadata.name}'
+    desc: Open a shell in the Couchdb pod
+    cmds:
+      - kubectl exec -it {{.POD}} -- couchdb-cli
+    silent: false
+
+  test:
+    desc: Run a test command in the Couchdb pod
+    cmds:
+      - task: create
+      - task: wait
+      - task: status
+      - task: logs
+      - task: remove
+    silent: false
