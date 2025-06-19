@@ -1,63 +1,27 @@
-version: "3"
-
-dotenv: [".env"]
-
-vars:
-  IMAGE: minio/minio:latest
-  CONTAINER_NAME: minio
-  HOST_PORT: "9000"
-  HOST_CONSOLE_PORT: "9001"
-  DATA_DIR: "./data"
-  MINIO_ROOT_USER: "{{.MINIO_ROOT_USER}}"
-  MINIO_ROOT_PASSWORD: "{{.MINIO_ROOT_PASSWORD}}"
+version: '3'
 
 tasks:
   up:
     desc: Run MinIO in Docker
     cmds:
+      - mkdir -p ./data
       - |
-        mkdir -p {{.DATA_DIR}}
         docker run -d --rm \
-          --name {{.CONTAINER_NAME}} \
-          -p {{.HOST_PORT}}:9000 \
-          -p {{.HOST_CONSOLE_PORT}}:9001 \
-          -e MINIO_ROOT_USER={{.MINIO_ROOT_USER}} \
-          -e MINIO_ROOT_PASSWORD={{.MINIO_ROOT_PASSWORD}} \
-          -v {{.DATA_DIR}}:/data \
-          {{.IMAGE}} server /data --console-address ":9001"
+          --name minio \
+          -p 9000:9000 \
+          -p 9001:9001 \
+          -e MINIO_ROOT_USER=admin \
+          -e MINIO_ROOT_PASSWORD=admin123 \
+          -v ./data:/data \
+          minio/minio:latest server /data --console-address ":9001"
 
   down:
-    desc: Stop and remove MinIO container
+    desc: Stop MinIO container
     cmds:
-      - docker stop {{.CONTAINER_NAME}} || true
-
-  status:
-    desc: Show container status
-    cmds:
-      - docker ps -f name={{.CONTAINER_NAME}}
-
-  logs:
-    desc: Show container logs
-    cmds:
-      - docker logs -f {{.CONTAINER_NAME}}
-
-  wait:
-    desc: Wait until MinIO is ready
-    cmds:
-      - |
-        until curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/minio/health/ready | grep -q "200"; do
-          echo "Waiting for MinIO..."
-          sleep 2
-        done
-        echo "MinIO is ready!"
-
-  test:
-    desc: Test MinIO connection
-    cmds:
-      - docker exec {{.CONTAINER_NAME}} curl -s http://localhost:9000/minio/health/ready
+      - docker stop minio || true
 
   cli:
-    desc: Run mc CLI against MinIO
+    desc: Run MinIO Client (mc) command via wrapper
     cmds:
-      - |
-        docker run --rm -it --network host minio/mc alias set local http://localhost:9000 {{.MINIO_ROOT_USER}} {{.MINIO_ROOT_PASSWORD}} && bash
+      - ./mc.sh {{.CLI_ARGS}}
+    silent: true
