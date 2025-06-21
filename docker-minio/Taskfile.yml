@@ -1,0 +1,58 @@
+version: '3'
+
+dotenv: [".env"]
+
+vars:
+  MINIO_ROOT_USER: "admin"
+  MINIO_ROOT_PASSWORD: "admin123"
+
+tasks:
+  up:
+    desc: Run MinIO in Docker
+    cmds:
+      - mkdir -p ./data
+      - |
+        docker run -d --rm \
+          --name minio \
+          -p 9000:9000 \
+          -p 9001:9001 \
+          -e MINIO_ROOT_USER={{.MINIO_ROOT_USER}} \
+          -e MINIO_ROOT_PASSWORD={{.MINIO_ROOT_PASSWORD}} \
+          -v ./data:/data \
+          minio/minio:latest server /data --console-address ":9001"
+
+  down:
+    desc: Stop MinIO container
+    cmds:
+      - docker stop minio || true
+
+  status:
+    desc: Show MinIO container status
+    cmds:
+      - docker ps -f name=minio
+
+  logs:
+    desc: Show MinIO container logs
+    cmds:
+      - docker logs -f minio
+
+  wait:
+    desc: Wait until MinIO is ready
+    cmds:
+      - |
+        until curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/minio/health/ready | grep -q "200"; do
+          echo "Waiting for MinIO..."
+          sleep 2
+        done
+        echo "MinIO is ready!"
+
+  test:
+    desc: Test MinIO connection
+    cmds:
+      - docker exec minio curl -s http://localhost:9000/minio/health/ready
+
+  cli:
+    desc: Run arbitrary mc command via wrapper
+    cmds:
+      - ./mc.sh {{.CLI_ARGS}}
+    silent: true
